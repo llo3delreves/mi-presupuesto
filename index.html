@@ -1,0 +1,384 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi Presupuesto Inteligente</title>
+<style>
+:root {
+  --green:#15803d; --light:#f0fdf4; --red:#dc2626;
+  --bg:#f5f7f6; --text:#17251c; --muted:#64748b;
+  --border:#e2e8e4;
+}
+* { box-sizing:border-box }
+body {
+  margin:0; font-family:Arial,sans-serif;
+  background:var(--bg); color:var(--text);
+}
+header {
+  background:#fff; border-bottom:1px solid var(--border);
+  padding:20px max(18px,calc((100% - 1050px)/2));
+}
+header h1 { margin:0; color:var(--green); font-size:25px }
+header p { margin:7px 0 0; color:var(--muted) }
+main { max-width:1050px; margin:auto; padding:22px 16px 45px }
+h2 { font-size:18px; margin:0 0 15px }
+.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px }
+.card,.panel {
+  background:white; padding:19px; border-radius:14px;
+  border:1px solid var(--border); margin-bottom:17px;
+}
+.metric { font-size:25px; font-weight:700; margin-top:10px; overflow-wrap:anywhere }
+.green { color:var(--green) } .red { color:var(--red) }
+.muted { color:var(--muted); font-size:13px }
+.layout { display:grid; grid-template-columns:1fr 1.25fr; gap:16px }
+label { display:block; font-size:13px; font-weight:600; margin:12px 0 6px }
+input,select,button {
+  font:inherit; width:100%; padding:11px;
+  border:1px solid #cbd5d0; border-radius:8px; background:white;
+}
+button { cursor:pointer; font-weight:600 }
+.primary { background:var(--green); color:white; border-color:var(--green) }
+.actions { display:flex; gap:8px; margin-top:15px }
+.actions button { flex:1 }
+table { width:100%; border-collapse:collapse; font-size:14px }
+th,td { padding:11px 5px; text-align:left; border-bottom:1px solid var(--border) }
+th { color:var(--muted); font-size:12px }
+td:last-child,th:last-child { text-align:right }
+.small-btn { width:auto; padding:6px 8px; margin:2px; font-size:12px }
+.bar { height:9px; background:#e5e7eb; border-radius:20px; overflow:hidden; margin:8px 0 16px }
+.fill { height:100%; background:var(--green); border-radius:20px }
+.advice { padding:13px; background:var(--light); border-radius:10px; margin:8px 0; line-height:1.5 }
+.empty { padding:20px 0; text-align:center; color:var(--muted) }
+@media(max-width:700px) {
+  .cards { grid-template-columns:1fr }
+  .layout { grid-template-columns:1fr }
+  .metric { font-size:24px }
+  .table-wrap { overflow-x:auto }
+  table { min-width:470px }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Mi Presupuesto Inteligente</h1>
+  <p>Organiza tu dinero. Decide mejor. Ahorra más.</p>
+</header>
+<main>
+  <section class="cards">
+    <div class="card">
+      <div class="muted">Ingresos totales</div>
+      <div id="income" class="metric green">0,00 €</div>
+    </div>
+    <div class="card">
+      <div class="muted">Gastos totales</div>
+      <div id="expenses" class="metric red">0,00 €</div>
+    </div>
+    <div class="card">
+      <div class="muted">Saldo disponible</div>
+      <div id="balance" class="metric">0,00 €</div>
+      <div id="savingRate" class="muted">Tasa de ahorro: —</div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="panel">
+      <h2 id="formTitle">Añadir movimiento</h2>
+      <form id="movementForm">
+        <label for="type">Tipo de movimiento</label>
+        <select id="type">
+          <option value="expense">Gasto</option>
+          <option value="income">Ingreso</option>
+        </select>
+        <label for="concept">Concepto</label>
+        <input id="concept" maxlength="80" placeholder="Ej. Compra semanal" required>
+        <label for="amount">Importe (€)</label>
+        <input id="amount" type="number" min="0.01" max="100000000" step="0.01" placeholder="0,00" required>
+        <label for="category">Categoría</label>
+        <select id="category">
+          <option>Vivienda</option>
+          <option>Alimentación</option>
+          <option>Transporte</option>
+          <option>Ocio</option>
+          <option>Salud</option>
+          <option>Educación</option>
+          <option>Otros</option>
+        </select>
+        <label for="date">Fecha</label>
+        <input id="date" type="date" required>
+        <div class="actions">
+          <button class="primary" type="submit" id="saveBtn">Añadir movimiento</button>
+          <button type="button" id="cancelBtn" hidden>Cancelar</button>
+        </div>
+      </form>
+      <p class="muted">Los datos se guardan en este navegador.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Presupuestos por categoría</h2>
+      <form id="budgetForm">
+        <label for="budgetCategory">Categoría</label>
+        <select id="budgetCategory">
+          <option>Vivienda</option><option>Alimentación</option>
+          <option>Transporte</option><option>Ocio</option>
+          <option>Salud</option><option>Educación</option><option>Otros</option>
+        </select>
+        <label for="budgetAmount">Límite mensual (€)</label>
+        <input id="budgetAmount" type="number" min="0.01" max="100000000" step="0.01" required>
+        <div class="actions">
+          <button class="primary" type="submit">Guardar presupuesto</button>
+        </div>
+      </form>
+      <div id="budgets" style="margin-top:20px"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Distribución de gastos</h2>
+    <div id="chart"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Consejos financieros</h2>
+    <div id="advice"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Historial de movimientos</h2>
+    <label for="filter">Filtrar por tipo</label>
+    <select id="filter">
+      <option value="all">Todos los movimientos</option>
+      <option value="income">Solo ingresos</option>
+      <option value="expense">Solo gastos</option>
+    </select>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Movimiento</th><th>Importe</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+    </div>
+    <button id="clearAll" style="margin-top:16px">Borrar todos los movimientos</button>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const euro = n => n.toLocaleString("es-ES", {
+  style:"currency", currency:"EUR"
+});
+const categories = [
+  "Vivienda","Alimentación","Transporte","Ocio",
+  "Salud","Educación","Otros"
+];
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+};
+let movements = [];
+let budgets = {};
+let editingId = null;
+
+try {
+  movements = JSON.parse(localStorage.getItem("mpi-movements") || "[]");
+  budgets = JSON.parse(localStorage.getItem("mpi-budgets") || "{}");
+  if (!Array.isArray(movements)) movements = [];
+  if (!budgets || typeof budgets !== "object" || Array.isArray(budgets)) budgets = {};
+  movements = movements.filter(m =>
+    m && typeof m.id === "string" &&
+    ["income","expense"].includes(m.type) &&
+    typeof m.concept === "string" &&
+    Number.isFinite(m.amount) && m.amount > 0 &&
+    categories.includes(m.category) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(m.date)
+  );
+} catch {
+  movements = [];
+  budgets = {};
+}
+
+function persist() {
+  try {
+    localStorage.setItem("mpi-movements", JSON.stringify(movements));
+    localStorage.setItem("mpi-budgets", JSON.stringify(budgets));
+  } catch {
+    alert("No se han podido guardar los datos. Comprueba el almacenamiento del navegador.");
+  }
+}
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[c]);
+}
+function currentMonth(m) {
+  return m.date.slice(0,7) === today().slice(0,7);
+}
+function monthExpenses(category) {
+  return movements.filter(m =>
+    m.type === "expense" && m.category === category && currentMonth(m)
+  ).reduce((sum,m) => sum + m.amount,0);
+}
+
+function render() {
+  const income = movements.filter(m=>m.type==="income").reduce((s,m)=>s+m.amount,0);
+  const expenses = movements.filter(m=>m.type==="expense").reduce((s,m)=>s+m.amount,0);
+  const balance = income - expenses;
+  $("income").textContent = euro(income);
+  $("expenses").textContent = euro(expenses);
+  $("balance").textContent = euro(balance);
+  $("balance").className = "metric " + (balance < 0 ? "red" : "green");
+  $("savingRate").textContent = income > 0
+    ? `Tasa de ahorro: ${((balance/income)*100).toLocaleString("es-ES",{maximumFractionDigits:1})}%`
+    : "Añade ingresos para calcular la tasa de ahorro";
+
+  const filtered = movements.filter(m =>
+    $("filter").value==="all" || m.type===$("filter").value
+  ).slice().sort((a,b)=>b.date.localeCompare(a.date));
+
+  $("history").innerHTML = filtered.length ? filtered.map(m => `
+    <tr>
+      <td><strong>${escapeHTML(m.concept)}</strong><br>
+        <span class="muted">${escapeHTML(m.category)} · ${escapeHTML(m.date)}</span>
+      </td>
+      <td class="${m.type==="income"?"green":"red"}">
+        ${m.type==="income"?"+":"−"}${euro(m.amount)}
+      </td>
+      <td>
+        <button class="small-btn" data-edit="${escapeHTML(m.id)}">Editar</button>
+        <button class="small-btn" data-delete="${escapeHTML(m.id)}">Eliminar</button>
+      </td>
+    </tr>`).join("") :
+    `<tr><td colspan="3" class="empty">Todavía no hay movimientos.</td></tr>`;
+
+  $("budgets").innerHTML = categories.filter(c=>budgets[c]>0).map(c=>{
+    const spent = monthExpenses(c), limit = budgets[c];
+    const pct = spent/limit*100;
+    return `<div><strong>${escapeHTML(c)}</strong>
+      <span style="float:right">${euro(spent)} / ${euro(limit)}</span>
+      <div class="bar"><div class="fill" style="width:${Math.min(pct,100)}%;background:${pct>=100?"#dc2626":pct>=80?"#d97706":"#15803d"}"></div></div>
+      <p class="muted">${pct>=100?"Has superado el límite.":pct>=80?"Atención: te acercas al límite.":`Has utilizado ${pct.toFixed(0)} % del presupuesto.`}
+      <button class="small-btn" data-budget-delete="${escapeHTML(c)}">Eliminar límite</button></p>
+    </div>`;
+  }).join("") || `<p class="muted">Aún no has definido presupuestos.</p>`;
+
+  const cats = categories.map(c=>({
+    name:c, total:movements.filter(m=>m.type==="expense"&&m.category===c)
+      .reduce((s,m)=>s+m.amount,0)
+  })).filter(c=>c.total>0).sort((a,b)=>b.total-a.total);
+  const max = Math.max(1,...cats.map(c=>c.total));
+  $("chart").innerHTML = cats.length ? cats.map(c=>`
+    <div><span>${escapeHTML(c.name)}</span>
+      <span style="float:right">${euro(c.total)}</span>
+      <div class="bar"><div class="fill" style="width:${c.total/max*100}%"></div></div>
+    </div>`).join("") : `<p class="muted">Registra gastos para visualizar las categorías.</p>`;
+
+  const tips = [];
+  const totalIncome = income;
+  if (!movements.length) {
+    tips.push("Empieza registrando tus ingresos y gastos para obtener recomendaciones útiles.");
+  } else {
+    if (balance < 0) tips.push("Tus gastos superan tus ingresos registrados. Revisa los gastos no esenciales y prioriza los pagos necesarios.");
+    if (income > 0 && balance >= 0) tips.push(`Tu saldo actual es ${euro(balance)}. Considera reservar una parte para el ahorro y los imprevistos.`);
+    const largest = cats[0];
+    if (largest) tips.push(`Tu categoría con mayor gasto acumulado es ${largest.name} (${euro(largest.total)}). Revisa si puedes optimizar ese gasto.`);
+    if (totalIncome === 0) tips.push("Todavía no hay ingresos registrados. Añádelos para calcular tu tasa de ahorro.");
+    categories.filter(c=>budgets[c]>0).forEach(c=>{
+      const pct = monthExpenses(c)/budgets[c]*100;
+      if (pct>=80) tips.push(`${c}: has utilizado el ${pct.toFixed(0)} % de tu límite mensual.`);
+    });
+  }
+  $("advice").innerHTML = tips.map(t=>`<div class="advice">${escapeHTML(t)}</div>`).join("");
+}
+
+function resetForm() {
+  editingId = null;
+  $("movementForm").reset();
+  $("date").value = today();
+  $("formTitle").textContent = "Añadir movimiento";
+  $("saveBtn").textContent = "Añadir movimiento";
+  $("cancelBtn").hidden = true;
+}
+$("date").value = today();
+
+$("movementForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const concept = $("concept").value.trim();
+  const amount = Number($("amount").value);
+  const date = $("date").value;
+  if (!concept || !Number.isFinite(amount) || amount<=0 || amount>100000000 || !date) {
+    alert("Revisa el concepto, el importe y la fecha.");
+    return;
+  }
+  const data = {
+    type:$("type").value, concept, amount,
+    category:$("category").value, date
+  };
+  if (editingId) {
+    movements = movements.map(m=>m.id===editingId?{...m,...data}:m);
+  } else {
+    movements.push({...data,id:crypto.randomUUID()});
+  }
+  persist();
+  resetForm();
+  render();
+});
+
+$("history").addEventListener("click",e=>{
+  const edit = e.target.closest("[data-edit]");
+  const del = e.target.closest("[data-delete]");
+  if (edit) {
+    const m = movements.find(m=>m.id===edit.dataset.edit);
+    if (!m) return;
+    editingId = m.id;
+    $("type").value=m.type;
+    $("concept").value=m.concept;
+    $("amount").value=m.amount;
+    $("category").value=m.category;
+    $("date").value=m.date;
+    $("formTitle").textContent="Editar movimiento";
+    $("saveBtn").textContent="Guardar cambios";
+    $("cancelBtn").hidden=false;
+    $("movementForm").scrollIntoView({behavior:"smooth"});
+  }
+  if (del) {
+    const m = movements.find(m=>m.id===del.dataset.delete);
+    if (m && confirm(`¿Eliminar "${m.concept}"?`)) {
+      movements = movements.filter(x=>x.id!==m.id);
+      persist(); render();
+      if (editingId===m.id) resetForm();
+    }
+  }
+});
+$("cancelBtn").addEventListener("click",resetForm);
+$("filter").addEventListener("change",render);
+
+$("budgetForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const category = $("budgetCategory").value;
+  const amount = Number($("budgetAmount").value);
+  if (!Number.isFinite(amount)||amount<=0||amount>100000000) {
+    alert("Introduce un límite válido.");
+    return;
+  }
+  budgets[category]=amount;
+  persist(); render(); $("budgetForm").reset();
+});
+$("budgets").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-budget-delete]");
+  if (btn) {
+    delete budgets[btn.dataset.budgetDelete];
+    persist(); render();
+  }
+});
+$("clearAll").addEventListener("click",()=>{
+  if (confirm("¿Quieres borrar todos los movimientos? Esta acción no se puede deshacer.")) {
+    movements=[];
+    persist(); resetForm(); render();
+  }
+});
+render();
+</script>
+</body>
+</html>
